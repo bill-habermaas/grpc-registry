@@ -1,0 +1,24 @@
+[package]
+name = "registry"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]] # Bin to run the registry gRPC server
+name = "reg-server"
+path = "src/server.rs"
+
+[[bin]] # Bin to run the registry gRPC client
+name = "reg-client"
+path = "src/client.rs"
+
+[dependencies]
+tonic = "0.12.3"
+prost = "0.13.5"
+jwt-simple = "0.12"
+serde = { version = "1.0.217", features = ["derive"] }
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+config = "0.15.9"
+once_cell = "1.20.3"
+
+[build-dependencies]
+tonic-build = "0.12.3"

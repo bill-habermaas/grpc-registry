@@ -1,0 +1,126 @@
+syntax = "proto3";
+// Note: When importing additional protobuf files in a java build a separate
+// java package must be specified.
+option java_multiple_files = true;
+option java_package = "registry";
+
+// import "timestamp.proto";
+
+// For Rust - force everything into the same package
+package registry;
+
+enum StatusCodes {
+  SUCCESS = 0;    // successful result
+  NOT_FOUND = 1;  // matching protobuf not found
+  DUPLICATE = 2;  // protobuf with duplicate url
+  BADTOKEN  = 3;  // Invalid auth token
+  AUTHERROR = 4;  // token create error
+}
+
+// This packet accompanies each response to report
+// success or failure
+message StatusPacket {
+  StatusCodes code = 1;
+  string error_message = 2;
+}
+
+// Register a new protobuf name
+message RegisterRequest {
+  string protobuf_name = 1;
+  string protobuf_url  = 2;
+  string token = 3;
+}
+
+message RegisterResponse {
+  string token = 1;
+  StatusPacket status = 2;
+}
+
+// Remove an existing protobuf service
+message DeRegisterRequest {
+  string token = 1;
+}
+
+// Response from remove
+message DeRegisterResponse {
+  StatusPacket status = 1;
+}
+
+// Keep alive report
+message KeepaliveReport {
+  string token = 1;
+  int32 number_requests = 2;
+  //google.protobuf.Timestamp last_time = 3;
+}
+
+// Keep alive response
+message KeepAliveResponse {
+  StatusPacket status = 1;
+}
+
+// Request to authorize a client
+message AuthorizeRequest {
+  string protobuf_name = 1;
+}
+
+// Client authorize response
+message AuthorizeResponse {
+  string token = 1;
+  StatusPacket status = 2;
+}
+
+// Request to find a provider
+message FindProviderRequest {
+  string registry_token = 1;
+  string protobuf_name = 3;
+  bool by_round_robin = 4;
+  bool by_lowest_use = 5;
+}
+
+// Response from find
+message FindProviderResponse {
+  string registry_token = 1;
+  string service_url = 2;
+  StatusPacket status = 3;
+}
+
+// Request provider report
+message ProviderReportRequest {
+  string token = 1;
+}
+
+// Detail by provider instance
+message ByProviderInstance {
+  string service_url = 1;
+  int32  requests = 2;
+  //Timestamp last_report = 3;
+}
+
+// Detail by provider
+message ByProvider {
+  string protobuf_name = 1;
+  repeated ByProviderInstance instances = 2;
+}
+
+// Details from provider report
+message ProviderReportResponse {
+  repeated ByProvider providers= 1;
+  StatusPacket status = 2;
+}
+
+// Registry functions.
+// 1. Authorize client
+// 2. Register provider
+// 3. UnRegister provider
+// 4. Find protobuf provider
+// 5. Provider keepalive
+// 6. Provider report
+
+service Registry {
+  rpc auth (AuthorizeRequest) returns (AuthorizeResponse);
+  //rpc regs (RegisterRequest) returns (RegisterResponse);
+  //rpc unreg (DeRegisterRequest) returns (DeRegisterResponse);
+  //rpc find (FindProviderRequest) returns (FindProviderResponse);
+  //rpc alive (KeepaliveReport) returns (KeepAliveResponse);
+  //rpc report (ProviderReportRequest) returns (ProviderReportResponse);
+}
