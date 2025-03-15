@@ -14,6 +14,8 @@
  * limitations under the License.
  *
  */
+use std::sync::Mutex;
+use crate::{Protobuf, Protobufs, Service};
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -23,9 +25,6 @@
 //// release locks based upon scoping.
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
-
-use std::sync::Mutex;
-use crate::{Protobuf, Protobufs, Service};
 
 pub fn make_service(url: String) -> Mutex<Service> {
     let s = Service{
@@ -59,10 +58,10 @@ pub fn find_protobuf(protobufs: &Protobufs, protobuf_name: String) -> Option<&Mu
 pub fn add_protobuf(protobufs: &mut Protobufs, protobuf_name: String) -> Result<(), String> {
     let name = protobuf_name.clone();
     let name2 = protobuf_name.clone();
-    if ( crate::find_protobuf(protobufs, protobuf_name)) .is_some() {
+    if ( find_protobuf(protobufs, protobuf_name)) .is_some() {
         return Err("Protobuf is already registered".to_string())
     }
-    let p = crate::make_protobuf(&name);
+    let p = make_protobuf(&name);
     protobufs.protomap.insert(name2, p);
     Ok(())
 }
@@ -73,7 +72,7 @@ pub fn add_service(protobuf: &mut Protobuf, url: String) -> Result<(), String> {
     //Err(_s);
     //} else
     {
-        let s = crate::make_service(url);
+        let s = make_service(url);
         //let aa = protobuf.unwrap();
         //let bb = aa.lock().unwrap();
         let mut cc = protobuf.services.lock().unwrap();
