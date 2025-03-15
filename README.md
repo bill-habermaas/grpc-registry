@@ -22,12 +22,17 @@ KEEPALIVE  - a service periodically reports it's availability
 FIND       - find a service with a matching protobuf configuration
 ```
 #### Optional 
-The FIND function has the added ability to serve as a load balancer, either
-round-robin or by minimum load as reported by KEEPALIVE
+The FIND function has the added ability to find a protobuf server by either
+round-robin or by minimum load as reported by KEEPALIVE for load balancing purpose. If
+the options are not set FIND will return the first protobuf server. 
 
 ### Security
 This service uses JWT authentication tokens for clients to FIND services
 or for services to perform DEREGISTER or KEEPALIVE requests.
+
+### Usage
+Either a protobuf client or protobuf service uses gRPC to perform registry functions. 
+Refer to the ***registry.proto*** file containing protobuf API definitions for request/response information. 
 
 ## License
 Apache

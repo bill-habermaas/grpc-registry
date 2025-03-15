@@ -15,8 +15,6 @@
  *
  */
 
-
-
 use registry:: registry_client::RegistryClient;
 
 
