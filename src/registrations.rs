@@ -15,48 +15,6 @@
  *
  */
 
-use std::collections::HashMap;
-
-#[derive(Debug)]
-struct Service {
-    url: String,
-    token: String,
-}
-
-#[derive(Debug)]
-pub struct Protobuf {
-    name: String,
-    services: Vec<Service>,
-}
-
-#[derive(Debug)]
-pub struct Protobufs {
-    protobuf_map: HashMap<String, Protobuf>,
-}
-impl Protobufs {
-    fn new() -> Protobufs {
-        Protobufs {
-            protobuf_map: HashMap::new(),
-        }
-    }
-    fn add_protobuf(&mut self, key: &str, protobuf: Protobuf) {
-        self.protobuf_map.insert(key.to_string(), protobuf);
-    }
-}
-
-pub fn registration_init() -> Protobufs {
-    let rootnode = Protobufs::new();
-    rootnode
-}
-
-pub fn create_protobuf(protobuf_name: String, mut root: Protobufs) {
-    let protobuf = Protobuf{
-        name: protobuf_name.clone(),
-        services: Vec::new(),
-    };
-    root.add_protobuf(&*protobuf_name, protobuf);
-}
-
 
 
 

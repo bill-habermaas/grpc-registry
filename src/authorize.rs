@@ -14,25 +14,22 @@
  * limitations under the License.
  *
  */
-
-use jwt_simple::algorithms::RS256KeyPair;
 use jwt_simple::prelude::Duration;
-use crate::{common, jwt, registry};
+use crate::{common, jwt, registry, GDATA};
 use crate::registry::{AuthorizeResponse};
-use crate::registry::StatusCodes::{Badtoken, NotFound};
 
-pub fn handle_authorize(protobuf_name: &String, key: RS256KeyPair) -> AuthorizeResponse {
+pub unsafe fn handle_authorize(protobuf_name: String) -> AuthorizeResponse {
 
+    let protobufs = GDATA.get().unwrap().lock().unwrap();
     // lookup protobuf and error if not found
     let name = protobuf_name.clone();
-    let protodef = common::findprotobuf(*protobuf_name);
-    let token = None;
-    let status = None;
+    let protodef = common::find_protobuf(&protobufs, protobuf_name.clone());
     if protodef.is_some() {
-        match jwt::create_token(key, "client".to_string(), name.to_string(),
+        let kp = protobufs.keypair.clone();
+        match jwt::create_token(kp, "client".to_string(), name.to_string(),
                                 false,
                                 Duration::from_hours(6)) {
-            Ok(mut jwttoken) => {
+            Ok(jwttoken) => {
                 let response = registry::AuthorizeResponse {
                     token: jwttoken,
                     status: None,
@@ -41,15 +38,21 @@ pub fn handle_authorize(protobuf_name: &String, key: RS256KeyPair) -> AuthorizeR
             },
             Err(e) => {
                 let status = registry::StatusPacket {
-                    code: Badtoken,
-                    error_message: e.to_string(),
+                    code: i32::from(registry::StatusCodes::Badtoken),
+                    error_message: e
                 };
                 let response = registry::AuthorizeResponse {
-                    token: None,
+                    token: "".to_string(),
                     status: Some(status),
                 };
                 return response
             },
         }
+    } else {
+        let response = registry::AuthorizeResponse {
+            token: "".to_string(),
+            status: None,
+        };
+        return response;
     }
 }
