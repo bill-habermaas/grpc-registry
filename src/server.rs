@@ -24,7 +24,6 @@ pub mod registrations;
 
 use registry::registry_server::{Registry, RegistryServer};
 
-
 // Import the generated proto-rust file into a module
 pub mod registry {
     tonic::include_proto!("registry");
@@ -32,19 +31,20 @@ pub mod registry {
 
 use std::sync::Mutex;
 use std::collections::HashMap;
-use std::string::ToString;
 
 // Specific protobuf instance for a named group
 #[derive(Debug)]
 struct Service {
-    url: String,
-    ctr: i32,
+    url: String,    // gRPC service URL (host:port)
+    stk: Option<String>,    // Server token of registree
+    ctr: i32,       // number of keepalives
 }
 
 // Specific protobuf group basis
 #[derive(Debug)]
 struct Protobuf {
-    name: String,
+    name: String,   // protobuf name
+    cltk: Option<String>,   // Client token for authorize
     services: Mutex<Vec<Mutex<Service>>>,
 }
 
@@ -69,13 +69,19 @@ pub struct MyRegistry {
 // for the registry service
 #[tonic::async_trait]
 impl Registry for MyRegistry {
-
     async fn auth(
-        &self,
-        request: Request<registry::AuthorizeRequest>,
-    ) -> Result<Response<registry::AuthorizeResponse>, Status> {
+        &self, request: Request<registry::AuthorizeRequest>, )
+        -> Result<Response<registry::AuthorizeResponse>, Status> {
         let req = request.into_inner();
-        let response = unsafe { handle_authorize(req.protobuf_name) };
+        let response = authorize::handle_authorize(req.protobuf_name);
+        Ok(Response::new(response))
+    }
+
+    async fn regs(
+        &self, request: Request<registry::RegisterRequest>, )
+        -> Result<Response<registry::RegisterResponse>, Status> {
+        let req = request.into_inner();
+        let response = registrations::handle_register(&req);
         Ok(Response::new(response))
     }
 }

@@ -15,6 +15,15 @@
  *
  */
 
+use crate::{common, jwt, registry, GDATA};
+use crate::registry::{RegisterResponse};
 
+pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterResponse {
 
-
+    let s = common::make_status_packet(common::StatusEnum::SERVERROR, "not supported".to_string());
+    let r = registry::RegisterResponse{
+        token: "".to_string(),
+        status: Some(s),
+    };
+    r
+}

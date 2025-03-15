@@ -16,6 +16,7 @@
  */
 use std::sync::Mutex;
 use crate::{Protobuf, Protobufs, Service};
+use crate::registry;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -29,6 +30,7 @@ use crate::{Protobuf, Protobufs, Service};
 pub fn make_service(url: String) -> Mutex<Service> {
     let s = Service{
         url: url,
+        stk: None,
         ctr: 0,
     };
     let m = Mutex::new(s);
@@ -39,6 +41,7 @@ pub fn make_service(url: String) -> Mutex<Service> {
 pub fn make_protobuf(protobuf_name: &String) -> Mutex<Protobuf> {
     let p = Protobuf {
         name: protobuf_name.to_string(),
+        cltk: None,
         services: Vec::new().into(),
     };
     let m = Mutex::new(p);
@@ -93,4 +96,25 @@ fn check_for_dup_urls(ids: &Vec<Mutex<Service>>, url: String) -> bool {
     }
     return false;
 }
+
+// Enum to match protobuf enum for status
+pub enum StatusEnum {
+    SUCCESS   = 0,  // successful result
+    NOTFOUND  = 1,  // matching protobuf not found
+    DUPLICATE = 2,  // protobuf with duplicate url
+    BADTOKEN  = 3,  // Invalid auth token
+    AUTHERROR = 4,  // token create error
+    SERVERROR = 5,  // server error
+}
+
+// Common routine to make a status packet
+pub fn make_status_packet(code: StatusEnum,  error_message: String) -> registry::StatusPacket {
+    let mapped_code = code as i32;
+    let p = registry::StatusPacket {
+        code: mapped_code,
+        error_message: error_message,
+    };
+    p
+}
+
 

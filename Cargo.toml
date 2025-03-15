@@ -19,6 +19,9 @@ serde = { version = "1.0.217", features = ["derive"] }
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
 config = "0.15.9"
 once_cell = "1.20.3"
+protobuf = "3"
 
 [build-dependencies]
 tonic-build = "0.12.3"
+protobuf-codegen = "3"
+protoc-rust = "^2.0"

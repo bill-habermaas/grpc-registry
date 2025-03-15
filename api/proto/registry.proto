@@ -20,7 +20,7 @@ enum StatusCodes {
 // This packet accompanies each response to report
 // success or failure
 message StatusPacket {
-  StatusCodes code = 1;
+  int32  code = 1;
   string error_message = 2;
 }
 
@@ -28,7 +28,6 @@ message StatusPacket {
 message RegisterRequest {
   string protobuf_name = 1;
   string protobuf_url  = 2;
-  string token = 3;
 }
 
 message RegisterResponse {
@@ -118,7 +117,7 @@ message ProviderReportResponse {
 
 service Registry {
   rpc auth (AuthorizeRequest) returns (AuthorizeResponse);
-  //rpc regs (RegisterRequest) returns (RegisterResponse);
+  rpc regs (RegisterRequest) returns (RegisterResponse);
   //rpc unreg (DeRegisterRequest) returns (DeRegisterResponse);
   //rpc find (FindProviderRequest) returns (FindProviderResponse);
   //rpc alive (KeepaliveReport) returns (KeepAliveResponse);

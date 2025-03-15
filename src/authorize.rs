@@ -18,7 +18,9 @@ use jwt_simple::prelude::Duration;
 use crate::{common, jwt, registry, GDATA};
 use crate::registry::{AuthorizeResponse};
 
-pub unsafe fn handle_authorize(protobuf_name: String) -> AuthorizeResponse {
+// Authorize is used by clients to obtain a JWT allowing FIND requests against a specific
+// protobuf service.
+pub fn handle_authorize(protobuf_name: String) -> AuthorizeResponse {
 
     let protobufs = GDATA.get().unwrap().lock().unwrap();
     // lookup protobuf and error if not found
@@ -30,6 +32,9 @@ pub unsafe fn handle_authorize(protobuf_name: String) -> AuthorizeResponse {
                                 false,
                                 Duration::from_hours(6)) {
             Ok(jwttoken) => {
+                let jwt = jwttoken.clone();
+                let mut p = protodef.unwrap().lock().unwrap();
+                p.cltk = Some(jwt);
                 let response = registry::AuthorizeResponse {
                     token: jwttoken,
                     status: None,
@@ -37,21 +42,20 @@ pub unsafe fn handle_authorize(protobuf_name: String) -> AuthorizeResponse {
                 return response;
             },
             Err(e) => {
-                let status = registry::StatusPacket {
-                    code: i32::from(registry::StatusCodes::Badtoken),
-                    error_message: e
-                };
+                let s = common::make_status_packet(common::StatusEnum::BADTOKEN, e);
                 let response = registry::AuthorizeResponse {
                     token: "".to_string(),
-                    status: Some(status),
+                    status: Some(s),
                 };
                 return response
             },
         }
     } else {
+        let s = common::make_status_packet(common::StatusEnum::NOTFOUND,
+                                           "no matching protobuf definition".to_string());
         let response = registry::AuthorizeResponse {
             token: "".to_string(),
-            status: None,
+            status: Some(s)
         };
         return response;
     }
