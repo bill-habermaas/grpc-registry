@@ -9,6 +9,8 @@ option java_package = "registry";
 // For Rust - force everything into the same package
 package registry;
 
+// These status codes are remapped as a Rust enum as support for
+// protobuf enums is lacking. Keep these enums in sync.
 enum StatusCodes {
   SUCCESS = 0;    // successful result
   NOT_FOUND = 1;  // matching protobuf not found
@@ -118,8 +120,8 @@ message ProviderReportResponse {
 service Registry {
   rpc auth (AuthorizeRequest) returns (AuthorizeResponse);
   rpc regs (RegisterRequest) returns (RegisterResponse);
-  //rpc unreg (DeRegisterRequest) returns (DeRegisterResponse);
-  //rpc find (FindProviderRequest) returns (FindProviderResponse);
-  //rpc alive (KeepaliveReport) returns (KeepAliveResponse);
-  //rpc report (ProviderReportRequest) returns (ProviderReportResponse);
+  rpc unreg (DeRegisterRequest) returns (DeRegisterResponse);
+  rpc find (FindProviderRequest) returns (FindProviderResponse);
+  rpc alive (KeepaliveReport) returns (KeepAliveResponse);
+  rpc report (ProviderReportRequest) returns (ProviderReportResponse);
 }

@@ -22,7 +22,7 @@ pub mod common;
 pub mod authorize;
 pub mod registrations;
 
-use registry::registry_server::{Registry, RegistryServer};
+use crate::registry::registry_server::{Registry, RegistryServer};
 
 // Import the generated proto-rust file into a module
 pub mod registry {
@@ -69,6 +69,7 @@ pub struct MyRegistry {
 // for the registry service
 #[tonic::async_trait]
 impl Registry for MyRegistry {
+
     async fn auth(
         &self, request: Request<registry::AuthorizeRequest>, )
         -> Result<Response<registry::AuthorizeResponse>, Status> {
@@ -84,6 +85,38 @@ impl Registry for MyRegistry {
         let response = registrations::handle_register(&req);
         Ok(Response::new(response))
     }
+
+    async fn unreg(
+        &self, request: Request<registry::DeRegisterRequest>, )
+        -> Result<Response<registry::DeRegisterResponse>, Status> {
+        let req = request.into_inner();
+        let response = registrations::handle_deregister(req);
+        Ok(Response::new(response))
+    }
+
+    async fn find(
+        &self, request: Request<registry::FindProviderRequest>, )
+        -> Result<Response<registry::FindProviderResponse>, Status> {
+        let req = request.into_inner();
+        let response = registrations::handle_find_provider(req);
+        Ok(Response::new(response))
+    }
+
+    async fn alive(
+        &self, request: Request<registry::KeepaliveReport>, )
+        -> Result<Response<registry::KeepAliveResponse>, Status> {
+        let req = request.into_inner();
+        let response = registrations::handle_keep_alive(req);
+        Ok(Response::new(response))
+    }
+
+    async fn report(
+        &self, request: Request<registry::ProviderReportRequest>, )
+        -> Result<Response<registry::ProviderReportResponse>, Status> {
+        let req = request.into_inner();
+        let response = registrations::handle_provider_report(req);
+        Ok(Response::new(response))
+    }
 }
 
 // Runtime to run our server
@@ -92,6 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let params = getconfig();
     let keyfile = params.get("public_key_file").unwrap().clone();
+    let server_address = params.get("server_address").unwrap();
     let keyname = keyfile.clone();
     match jwt::load_pem(keyfile) {
         Ok(kp) => {
@@ -107,10 +141,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     }
 
-    let addr = "[::1]:50055".parse()?;
+    let addr = server_address.parse()?;
     let serv = MyRegistry::default();
 
-    println!("Starting gRPC Registration server...");
+    println!("Starting gRPC Registration server on {}", server_address);
     Server::builder()
         .add_service(RegistryServer::new(serv))
         .serve(addr)

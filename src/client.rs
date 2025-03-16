@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-
+use std::collections::HashMap;
 use registry:: registry_client::RegistryClient;
 
 
@@ -24,16 +24,38 @@ pub mod registry {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut client = RegistryClient::connect("http://[::1]:50055").await?;
+
+    let params = getconfig();
+    let server_addr = params.get("server_address").unwrap();
+    let server_http = format!("http://{}", server_addr);
+    println!("Connecting to gRPC Server at {}", server_http);
+    let mut client = RegistryClient::connect(server_http).await?;
 
     let request = tonic::Request::new(registry::AuthorizeRequest {
         protobuf_name: "testproto".to_string(),
     });
-
-    println!("Sending request to gRPC Server...");
     let response = client.auth(request).await?;
 
     println!("RESPONSE={:?}", response);
 
     Ok(())
+}
+
+// Load configuration parameters
+use config::{Config};
+pub fn getconfig() -> HashMap<String, String> {
+    let settings = Config::builder()
+        // Add in `./Settings.toml`
+        .add_source(config::File::with_name("setting.toml"))
+        // Add in settings from the environment (with a prefix of APP)
+        // Eg.. `APP_DEBUG=1 ./target/app` would set the `debug` key
+        .add_source(config::Environment::with_prefix("APP"))
+        .build()
+        .unwrap();
+
+    let cfg = settings.clone();
+    let themap: HashMap<String, String> =
+        cfg.try_deserialize::<HashMap<String, String>>()
+            .unwrap();
+    themap
 }
