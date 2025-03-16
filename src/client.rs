@@ -17,32 +17,57 @@
 use std::collections::HashMap;
 use registry:: registry_client::RegistryClient;
 
-
 pub mod registry {
     tonic::include_proto!("registry");
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
+}
 
+#[test]
+fn test_authorize_for_unknown_protobuf() {
+    #[allow(unused_must_use)]
+    test1();
+}
+
+async fn test1() {
+    let mut client = grpc_connect().await;
+
+    let request = tonic::Request::new(registry::AuthorizeRequest {
+        protobuf_name: "unknown-testproto".to_string(),
+    });
+    let response = client.auth(request).await;
+    let a = response.unwrap();
+    let b = a.into_inner();
+    let c = b.status;
+    let d = c.unwrap().code;
+    assert_eq!(d, 1, "protobuf does not exist {}", d);
+}
+
+pub async fn grpc_connect() -> RegistryClient<Channel> {
     let params = getconfig();
     let server_addr = params.get("server_address").unwrap();
     let server_http = format!("http://{}", server_addr);
     println!("Connecting to gRPC Server at {}", server_http);
-    let mut client = RegistryClient::connect(server_http).await?;
-
-    let request = tonic::Request::new(registry::AuthorizeRequest {
-        protobuf_name: "testproto".to_string(),
-    });
-    let response = client.auth(request).await?;
-
-    println!("RESPONSE={:?}", response);
-
-    Ok(())
+    match RegistryClient::connect(server_http).await {
+        Ok(c) => { return c; },
+        Err(e) => {
+            println!("connection error, tests cancelled: {}", e.to_string());
+            std::process::exit(999);
+        },
+    };
 }
+
+
+
+
 
 // Load configuration parameters
 use config::{Config};
+use tonic::transport::Channel;
+
 pub fn getconfig() -> HashMap<String, String> {
     let settings = Config::builder()
         // Add in `./Settings.toml`

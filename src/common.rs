@@ -14,7 +14,9 @@
  * limitations under the License.
  *
  */
+use std::collections::HashMap;
 use std::sync::Mutex;
+use jwt_simple::prelude::RS256KeyPair;
 use crate::{Protobuf, Protobufs, Service};
 use crate::registry;
 
@@ -69,18 +71,50 @@ pub fn add_protobuf(protobufs: &mut Protobufs, protobuf_name: String) -> Result<
     Ok(())
 }
 
+#[test]
+fn test_add_protobuf() {
+    let kp = RS256KeyPair::generate(4096);
+    let mut protobufs = Protobufs{
+        keypair: kp.unwrap(),
+        protomap: HashMap::new(),
+    };
+
+    let p = add_protobuf(&mut protobufs, "testproto".to_string());
+    if p.is_ok() {
+        let b = protobufs.protomap.contains_key(&"testproto".to_string());
+        assert_eq!(b, true,"missing protobuf")
+    } else {
+        panic!("error returned");
+    }
+}
+
 // Add a new service definition to a protobuf grouping.
 pub fn add_service(protobuf: &mut Protobuf, service: Mutex<Service>, url: String) -> Result<(), String> {
     if check_for_dup_urls(&protobuf, url) == true {
         let s = "duplicate url in service".to_string();
         return Err(s);
     } else {
-        //let aa = protobuf.unwrap();
-        //let bb = aa.lock().unwrap();
         //let mut cc = &protobuf.services;
-        //cc.push(service);
+        protobuf.services.push(service);
     }
     Ok(())
+}
+
+#[test]
+fn test_add_service_to_protobuf() {
+    let mut protobuf = Protobuf {
+        name: "proto1".to_string(),
+        cltk: None,
+        services: Vec::new(),
+    };
+    let s = make_service("url1".to_string());
+    let r = add_service(&mut protobuf, s, "url1".to_string());
+    if r.is_ok() {
+        let s = make_service("url1".to_string());
+        let rr = add_service(&mut protobuf, s, "url1".to_string());
+        let err = rr.unwrap_err();
+        assert_eq!(err, "duplicate url in service");
+    }
 }
 
 // Check for duplicate protobuf urls in this protobuf group.
@@ -93,6 +127,28 @@ fn check_for_dup_urls(protobuf: &Protobuf, url: String) -> bool {
         if p.url == url { return true; }
     }
     return false;
+}
+
+#[test]
+fn duplicate_in_service_list() {
+    let mut protobuf = Protobuf {
+        name: "proto1".to_string(),
+        cltk: None,
+        services: Vec::new(),
+    };
+    for i in 0..5 {
+        let s = Service {
+            url: format ! ("url-{}", i),
+            stk: None,
+            ctr: 0,
+        };
+        let m = Mutex::new(s);
+        protobuf.services.push(m);
+    }
+    let b = check_for_dup_urls( & protobuf, "unknown".to_string());
+    assert_eq ! (b, false, "not found");
+    let c = check_for_dup_urls( & protobuf, "url-1".to_string());
+    assert_eq ! (c, true, "was found");
 }
 
 // Enum to match protobuf enum for status

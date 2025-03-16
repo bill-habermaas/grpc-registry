@@ -83,14 +83,14 @@ pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterRes
     }
 }
 
-pub fn handle_deregister(req: DeRegisterRequest) -> DeRegisterResponse {
+pub fn handle_deregister(_req: DeRegisterRequest) -> DeRegisterResponse {
     let rsp = DeRegisterResponse {
         status: None,
     };
     rsp
 }
 
-pub fn handle_find_provider(req: FindProviderRequest) -> FindProviderResponse {
+pub fn handle_find_provider(_req: FindProviderRequest) -> FindProviderResponse {
     let rsp = FindProviderResponse {
         registry_token: "".to_string(),
         service_url: "".to_string(),
@@ -98,14 +98,14 @@ pub fn handle_find_provider(req: FindProviderRequest) -> FindProviderResponse {
     };
     rsp
 }
-pub fn handle_keep_alive(req: KeepaliveReport) -> KeepAliveResponse {
+pub fn handle_keep_alive(_req: KeepaliveReport) -> KeepAliveResponse {
     let rsp = KeepAliveResponse {
         status: None,
     };
     rsp
 }
 
-pub fn handle_provider_report(req: ProviderReportRequest) -> ProviderReportResponse {
+pub fn handle_provider_report(_req: ProviderReportRequest) -> ProviderReportResponse {
     let rsp = ProviderReportResponse {
         providers: vec![],
         status: None,
