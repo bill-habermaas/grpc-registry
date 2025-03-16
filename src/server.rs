@@ -45,7 +45,7 @@ pub struct Service {
 pub struct Protobuf {
     pub name: String,   // protobuf name
     pub cltk: Option<String>,   // Client token for authorize
-    pub services: Mutex<Vec<Mutex<Service>>>,
+    pub services: Vec<Mutex<Service>>,
 }
 
 // General root for all protobuf grouping. It also provides data

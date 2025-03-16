@@ -71,32 +71,27 @@ pub fn add_protobuf(protobufs: &mut Protobufs, protobuf_name: String) -> Result<
 
 // Add a new service definition to a protobuf grouping.
 pub fn add_service(protobuf: &mut Protobuf, service: Mutex<Service>, url: String) -> Result<(), String> {
-
-    if check_for_dup_urls(&protobuf.services, url) == true {
+    if check_for_dup_urls(&protobuf, url) == true {
         let s = "duplicate url in service".to_string();
         return Err(s);
     } else {
         //let aa = protobuf.unwrap();
         //let bb = aa.lock().unwrap();
-        let mut cc = protobuf.services.lock().unwrap();
-        cc.push(service);
+        //let mut cc = &protobuf.services;
+        //cc.push(service);
     }
     Ok(())
 }
 
-// Check for duplicate protobuf urls in the protobuf group.
-fn check_for_dup_urls(ids: &Mutex<Vec<Mutex<Service>>>, url: String) -> bool {
-    /*
-    if ids.len() > 0 {
-        for x in 0..ids.len() {
-            let s = ids[x].lock().unwrap();
-            if url == s.url {
-                return true;
-            }
-        }
+// Check for duplicate protobuf urls in this protobuf group.
+fn check_for_dup_urls(protobuf: &Protobuf, url: String) -> bool {
+    let ct = protobuf.services.len();
+    if ct < 1 { return false; }
+    for i in 0..ct {
+        let m = &protobuf.services[i];
+        let p = m.lock().unwrap();
+        if p.url == url { return true; }
     }
-
-     */
     return false;
 }
 
