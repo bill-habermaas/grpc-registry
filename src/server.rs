@@ -34,26 +34,26 @@ use std::collections::HashMap;
 
 // Specific protobuf instance for a named group
 #[derive(Debug)]
-struct Service {
-    url: String,    // gRPC service URL (host:port)
-    stk: Option<String>,    // Server token of registree
-    ctr: i32,       // number of keepalives
+pub struct Service {
+    pub url: String,    // gRPC service URL (host:port)
+    pub stk: Option<String>,    // Server token of registree
+    pub ctr: i32,       // number of keepalives
 }
 
 // Specific protobuf group basis
 #[derive(Debug)]
-struct Protobuf {
-    name: String,   // protobuf name
-    cltk: Option<String>,   // Client token for authorize
-    services: Mutex<Vec<Mutex<Service>>>,
+pub struct Protobuf {
+    pub name: String,   // protobuf name
+    pub cltk: Option<String>,   // Client token for authorize
+    pub services: Mutex<Vec<Mutex<Service>>>,
 }
 
 // General root for all protobuf grouping. It also provides data
 // used throughout the registry application.
 #[derive(Debug)]
-struct Protobufs {
-    keypair: RS256KeyPair,    // PEM keypair used to generatw JWTs
-    protomap: HashMap<String, Mutex<Protobuf>>,
+pub struct Protobufs {
+    pub keypair: RS256KeyPair,    // PEM keypair used to generatw JWTs
+    pub protomap: HashMap<String, Mutex<Protobuf>>,
 }
 
 use once_cell::sync::OnceCell;
@@ -122,7 +122,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 // Load configuration parameters
 use config::{Config};
 use jwt_simple::algorithms::RS256KeyPair;
-use authorize::handle_authorize;
 
 pub fn getconfig() -> HashMap<String, String> {
     let settings = Config::builder()
