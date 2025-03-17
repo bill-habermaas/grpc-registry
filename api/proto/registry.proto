@@ -80,9 +80,8 @@ message FindProviderRequest {
 
 // Response from find
 message FindProviderResponse {
-  string registry_token = 1;
-  string service_url = 2;
-  StatusPacket status = 3;
+  string service_url = 1;
+  StatusPacket status = 2;
 }
 
 // Request provider report

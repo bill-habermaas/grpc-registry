@@ -129,16 +129,102 @@ fn unreg_not_found() -> DeRegisterResponse {
     return response;
 }
 
-pub fn handle_find_provider(_req: FindProviderRequest) -> FindProviderResponse {
+// find the provider
+pub fn handle_find_provider(req: FindProviderRequest) -> FindProviderResponse {
+    let token = req.registry_token;
+    let protobuf_name = req.protobuf_name;
+    let kp = get_keypair();
+    let claim = jwt::validate_token(kp.unwrap(), token);
+    if claim.is_err() {
+        let s = make_status_packet(common::StatusEnum::AUTHERROR, claim.unwrap_err());
+        let response = FindProviderResponse {
+            service_url: "".to_string(),
+            status: Some(s),
+        };
+        return response;
+    }
+    // token is good. See if protobuf exists
+    let protobufs = GDATA.get().unwrap().lock().unwrap();
+    let r = find_protobuf(&protobufs, protobuf_name);
+    if r.is_none() {
+        // Doesn't exist
+        let s = make_status_packet(common::StatusEnum::NOTFOUND,
+                                   "protobuf does not exist".to_string());
+        let response = FindProviderResponse {
+            service_url: "".to_string(),
+            status: Some(s),
+        };
+        return response;
+    }
+    let protobuf = r.unwrap().lock().unwrap();
+    if protobuf.services.is_empty() {
+        let s = make_status_packet(common::StatusEnum::NOTFOUND,
+                                   "protobuf does not exist".to_string());
+        let response = FindProviderResponse {
+            service_url: "".to_string(),
+            status: Some(s),
+        };
+        return response;
+    }
+
+    // Pick off the start of service list
+    let s = protobuf.services.get(0);
+    let svc = s.unwrap().lock().unwrap();
+    let service_url = &svc.url;
+    // load balancing code goes here
     let rsp = FindProviderResponse {
-        registry_token: "".to_string(),
-        service_url: "".to_string(),
+        service_url: service_url.to_string(),
         status: None,
     };
     rsp
 }
 
-pub fn handle_keep_alive(_req: KeepaliveReport) -> KeepAliveResponse {
+// Handle keep alive request
+pub fn handle_keep_alive(req: KeepaliveReport) -> KeepAliveResponse {
+    let token = req.token;
+    let kp = get_keypair();
+    let claim = jwt::validate_token(kp.unwrap(), token);
+    if claim.is_err() {
+        let s = make_status_packet(common::StatusEnum::AUTHERROR, claim.unwrap_err());
+        let response = KeepAliveResponse {
+            status: Some(s),
+        };
+        return response;
+    }
+    // token is good
+    let c = claim.unwrap();
+    let protobuf_name = c.subject;
+    let url = c.custom.user_name;
+    // Now find the service item
+    let protobufs = GDATA.get().unwrap().lock().unwrap();
+    let protobuf = find_protobuf(&protobufs, protobuf_name.unwrap());
+    if protobuf.is_none() {
+        let s = make_status_packet(common::StatusEnum::NOTFOUND,
+                                   "protobuf does not exist".to_string());
+        let response = KeepAliveResponse {
+            status: Some(s),
+        };
+        return response;
+    }
+    // lock the protobuf struct and find the matching service
+    let p = protobuf.unwrap().lock().unwrap();
+    if p.services.is_empty() {
+        let s = make_status_packet(common::StatusEnum::NOTFOUND,
+                                   "protobuf does not exist".to_string());
+        let response = KeepAliveResponse {
+            status: Some(s),
+        };
+        return response;
+    }
+
+    let ct = p.services.len();
+    for i in 0..ct {
+        let m = &p.services[i];
+        let mut x = m.lock().unwrap();
+        if x.url == url {
+            x.ctr = x.ctr + 1;
+        }
+    }
     let rsp = KeepAliveResponse {
         status: None,
     };
