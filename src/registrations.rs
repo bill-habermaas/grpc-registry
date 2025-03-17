@@ -15,7 +15,8 @@
  *
  */
 use jwt_simple::prelude::Duration;
-use crate::{common, registry, GDATA};
+use crate::{common, jwt, registry, Protobuf, GDATA};
+use crate::common::{find_protobuf, get_keypair, make_status_packet};
 use crate::registry::{DeRegisterRequest, DeRegisterResponse, FindProviderRequest, FindProviderResponse, KeepAliveResponse, KeepaliveReport};
 
 // Handle protobuf registration.
@@ -27,7 +28,7 @@ pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterRes
     let url1 = req.protobuf_url.to_string();
     let url2 = url1.clone();
 
-    let token = common::make_token("server".to_string(), name2.to_string(),
+    let token = common::make_token(url2.to_string(), name2.to_string(),
                                    false, Duration::from_hours(12));
 
     let mut protobufs = GDATA.get().unwrap().lock().unwrap();
@@ -64,11 +65,68 @@ pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterRes
     rsp
 }
 
-pub fn handle_deregister(_req: DeRegisterRequest) -> DeRegisterResponse {
+// Remove a protocol registration
+pub fn handle_deregister(req: DeRegisterRequest) -> DeRegisterResponse {
+    let token = req.token;
+    let kp = get_keypair();
+    let claim = jwt::validate_token(kp.unwrap(), token);
+    if claim.is_err() {
+        let s = make_status_packet(common::StatusEnum::AUTHERROR, claim.unwrap_err());
+        let response = DeRegisterResponse {
+            status: Some(s),
+        };
+        return response;
+    }
+    let info = claim.unwrap();
+    let url = info.subject.unwrap();
+    let proto_name = info.custom.user_name;
+    // find the protobuf containing the protobuf group
+    let protobufs = GDATA.get().unwrap().lock().unwrap();
+    let protocol = find_protobuf(&protobufs, proto_name);
+    if protocol.is_none() {
+        return unreg_not_found();
+    }
+    // search through the service index to find the registration.else
+    let mut protobuf = protocol.unwrap().lock().unwrap();
+    if find_entry_to_remove(&mut protobuf, url) == false {
+        return unreg_not_found();
+    }
     let rsp = DeRegisterResponse {
         status: None,
     };
     rsp
+}
+
+fn find_entry_to_remove(protobuf: &mut Protobuf, url: String) -> bool {
+    let ct = protobuf.services.len();
+    if ct < 1 { return false; }
+    let usize = search_services(protobuf, url);
+    if usize == 0 { return false; }
+    let usize = usize -1 ;
+    // found the service entry, get id of it
+    protobuf.services.remove(usize);
+    return true;
+}
+
+fn search_services(protobuf: &mut Protobuf, url: String) -> usize {
+    let ct = protobuf.services.len();
+    for i in 0..ct {
+        let m = &protobuf.services[i];
+        let p = m.lock().unwrap();
+        if p.url == url {
+            return i + 1;
+        }
+    }
+    return 0;
+}
+
+fn unreg_not_found() -> DeRegisterResponse {
+    let s = make_status_packet(common::StatusEnum::NOTFOUND,
+                               "protobuf not found".to_string());
+    let response = DeRegisterResponse {
+        status: Some(s),
+    };
+    return response;
 }
 
 pub fn handle_find_provider(_req: FindProviderRequest) -> FindProviderResponse {

@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-use std::collections::HashMap;
+
 use std::sync::Mutex;
 use jwt_simple::prelude::{Duration, RS256KeyPair};
 use crate::{jwt, Protobuf, Protobufs, Service, KPAIR};
@@ -50,7 +50,7 @@ pub fn get_keypair() -> Option<&'static RS256KeyPair> {
     if kp.is_none() {
         let kpr = RS256KeyPair::generate(4096);
         let kp = kpr.unwrap();
-        KPAIR.set(kp);
+        let _p = KPAIR.set(kp);
     }
     return KPAIR.get();
 }
