@@ -19,6 +19,7 @@ use tonic::{transport::Server, Request, Response, Status};
 
 pub mod jwt;
 pub mod common;
+pub mod reports;
 pub mod authorize;
 pub mod registrations;
 
@@ -114,7 +115,7 @@ impl Registry for MyRegistry {
         &self, request: Request<registry::ProviderReportRequest>, )
         -> Result<Response<registry::ProviderReportResponse>, Status> {
         let req = request.into_inner();
-        let response = registrations::handle_provider_report(req);
+        let response = reports::handle_provider_report(req);
         Ok(Response::new(response))
     }
 }

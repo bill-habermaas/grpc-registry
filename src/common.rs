@@ -14,9 +14,8 @@
  * limitations under the License.
  *
  */
-use std::collections::HashMap;
+
 use std::sync::Mutex;
-use jwt_simple::prelude::RS256KeyPair;
 use crate::{Protobuf, Protobufs, Service};
 use crate::registry;
 

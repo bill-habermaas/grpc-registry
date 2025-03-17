@@ -17,7 +17,7 @@
 use jwt_simple::prelude::Duration;
 use crate::{common, jwt, registry, GDATA};
 use crate::common::make_service;
-use crate::registry::{DeRegisterRequest, DeRegisterResponse, FindProviderRequest, FindProviderResponse, KeepAliveResponse, KeepaliveReport, ProviderReportRequest, ProviderReportResponse};
+use crate::registry::{DeRegisterRequest, DeRegisterResponse, FindProviderRequest, FindProviderResponse, KeepAliveResponse, KeepaliveReport};
 
 // Handle protobuf registration.
 pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterResponse {
@@ -98,16 +98,9 @@ pub fn handle_find_provider(_req: FindProviderRequest) -> FindProviderResponse {
     };
     rsp
 }
+
 pub fn handle_keep_alive(_req: KeepaliveReport) -> KeepAliveResponse {
     let rsp = KeepAliveResponse {
-        status: None,
-    };
-    rsp
-}
-
-pub fn handle_provider_report(_req: ProviderReportRequest) -> ProviderReportResponse {
-    let rsp = ProviderReportResponse {
-        providers: vec![],
         status: None,
     };
     rsp

@@ -21,19 +21,14 @@ pub mod registry {
     tonic::include_proto!("registry");
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    Ok(())
-}
+//#[tokio::main]
+//async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//    Ok(())
+//}
 
-#[test]
-fn test_authorize_for_unknown_protobuf() {
-    #[allow(unused_must_use)]
-    test1();
-}
-
-async fn test1() {
-    let mut client = grpc_connect().await;
+#[tokio::test]
+async fn test_authorize_for_unknown_protobuf() {
+   let mut client = grpc_connect().await;
 
     let request = tonic::Request::new(registry::AuthorizeRequest {
         protobuf_name: "unknown-testproto".to_string(),
@@ -42,8 +37,32 @@ async fn test1() {
     let a = response.unwrap();
     let b = a.into_inner();
     let c = b.status;
+    let g = c.clone();
     let d = c.unwrap().code;
-    assert_eq!(d, 1, "protobuf does not exist {}", d);
+    println!("{:?}", g);
+    assert_eq!(d, 1, "not protobuf does not exist: error-code={}", d);
+}
+
+#[tokio::test]
+async fn test_register_for_supplied_protocol() {
+    let mut client = grpc_connect().await;
+
+    let request = tonic::Request::new(registry::RegisterRequest {
+        protobuf_name: "testproto".to_string(),
+        protobuf_url: "localhost:8089".to_string(),
+    });
+    let response = client.regs(request).await;
+    let a = response.unwrap();
+    let b = a.into_inner();
+    let c= b.token;
+    let d = b.status;
+    let g = d.clone();
+    let h = g.clone();
+    let e = d.unwrap().code;
+    if h.is_some() {
+        println!("{:?}", g);
+        assert_eq!(e,5,"register protobuf returned something");
+    }
 }
 
 pub async fn grpc_connect() -> RegistryClient<Channel> {
@@ -59,10 +78,6 @@ pub async fn grpc_connect() -> RegistryClient<Channel> {
         },
     };
 }
-
-
-
-
 
 // Load configuration parameters
 use config::{Config};
