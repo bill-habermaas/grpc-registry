@@ -15,7 +15,6 @@
  *
  */
 
-
 use std::fs::read_to_string;
 use jwt_simple::prelude::*;
 
@@ -27,7 +26,7 @@ pub struct MyAdditionalData {
 }
 
 // Create the jwt from the key pair
-pub fn create_token(kp: RS256KeyPair, username: String, subject: String, is_admin: bool,
+pub fn create_token(kp: &RS256KeyPair, username: String, subject: String, is_admin: bool,
     duration: Duration) -> Result<String, String> {
 
     let my_additional_data = MyAdditionalData {
@@ -59,7 +58,7 @@ pub fn create_token(kp: RS256KeyPair, username: String, subject: String, is_admi
 }
 
 // Validate that the token is valid and correct
-pub fn validate_token(kp: RS256KeyPair, token: String) -> Result<JWTClaims<MyAdditionalData>, String> {
+pub fn validate_token(kp: &RS256KeyPair, token: String) -> Result<JWTClaims<MyAdditionalData>, String> {
 
     let mut options = VerificationOptions::default();
     // Accept tokens that will only be valid in the future
@@ -100,13 +99,39 @@ fn test_loadpem () {
     let kp = load_pem("mykey.pem".to_string()).unwrap();
     let kpp = kp.clone();
     let duration = Duration::from_mins(10);
-    let token = create_token(kp, "bill".to_string(),
+    let token = create_token(&kp, "bill".to_string(),
                                   "mysubject".to_string(), false, duration).unwrap();
-    let r = validate_token(kpp, token);
+    let r = validate_token(&kpp, token);
+    let rr = r.clone();
     if r.is_err() {
-        println!("Error: {}", r.unwrap_err());
-    } else {
-        println!("{:?}", r);
+        assert_eq!("".to_string(), r.unwrap_err());
+        println!("Error: {}", rr.unwrap_err());
     }
 }
 
+#[test]
+fn test_validate_token() {
+    // first create the keypair and make the token
+    let kpr = RS256KeyPair::generate(4096);
+    let kp = kpr.unwrap();
+    let k2 = kp.clone();
+
+    let r = create_token(&kp, "myuser".to_string(),
+                         "mysubject".to_string(), false,
+                         Duration::from_mins(1)
+                        );
+    if r.is_err() {
+
+    }
+    let token = r.unwrap().to_string();
+
+    // Now validate
+    let x = validate_token(&k2, token);
+    if x.is_ok() {
+        let z = x.unwrap();
+        assert_eq!(z.custom.user_name, "myuser".to_string(), "mismatched user");
+    }
+    else {
+        println!("error in validation {}", x.unwrap_err());
+    }
+}

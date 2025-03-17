@@ -15,6 +15,14 @@
  *
  */
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//Todo write keepalive function and client-side unit test
+//ToDo write deregister function and client-site unit test
+//ToDo write findProvider function and client-side unit test
+//ToDo write provider report
+//ToDo add load balancer support
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 use tonic::{transport::Server, Request, Response, Status};
 
 pub mod jwt;
@@ -53,12 +61,12 @@ pub struct Protobuf {
 // used throughout the registry application.
 #[derive(Debug)]
 pub struct Protobufs {
-    pub keypair: RS256KeyPair,    // PEM keypair used to generatw JWTs
     pub protomap: HashMap<String, Mutex<Protobuf>>,
 }
 
 use once_cell::sync::OnceCell;
 static GDATA: OnceCell<Mutex<Protobufs>> = OnceCell::new();
+static KPAIR: OnceCell<RS256KeyPair> = OnceCell::new();
 
 // Implement the service skeleton for the "registry" service
 // defined in the proto
@@ -131,9 +139,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match jwt::load_pem(keyfile) {
         Ok(kp) => {
             let ps = Protobufs {
-                keypair: kp,
                 protomap: HashMap::new(),
             };
+            let _ = KPAIR.set(kp);
             let _ = GDATA.set(Mutex::new(ps));
         },
         Err(e) => {

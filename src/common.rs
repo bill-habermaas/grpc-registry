@@ -14,9 +14,10 @@
  * limitations under the License.
  *
  */
-
+use std::collections::HashMap;
 use std::sync::Mutex;
-use crate::{Protobuf, Protobufs, Service};
+use jwt_simple::prelude::{Duration, RS256KeyPair};
+use crate::{jwt, Protobuf, Protobufs, Service, KPAIR};
 use crate::registry;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -28,10 +29,52 @@ use crate::registry;
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn make_service(url: String) -> Mutex<Service> {
+pub fn make_token(user: String, subject: String, isadmin: bool, duration: Duration) -> Option<String> {
+    let kpo = get_keypair();
+    match jwt::create_token(kpo.unwrap(), user.to_string(), subject.to_string(), isadmin,
+                            duration) {
+                           // Duration::from_hours(12)) {
+        Ok(jwttoken) => { return Some(jwttoken); },
+        Err(e) => {
+            println!("make token error: {}", e);
+        },
+    };
+    return None;
+}
+
+// This is hack to make sure the keypair is set in all situations. When tests are run
+// the normal server initialization does not happen so we need to check and make the
+// keypair on the fly so the tests won't panic when it is None.
+pub fn get_keypair() -> Option<&'static RS256KeyPair> {
+    let kp = KPAIR.get();
+    if kp.is_none() {
+        let kpr = RS256KeyPair::generate(4096);
+        let kp = kpr.unwrap();
+        KPAIR.set(kp);
+    }
+    return KPAIR.get();
+}
+
+#[test]
+fn test_make_token() {
+    let fp = KPAIR.get();
+    if fp.is_none() {
+
+    }
+    let t= make_token("test".to_string(),
+    "subject".to_string(), false, Duration::from_mins(5));
+    if t.is_none() {
+        assert!(false);
+    }
+    else {
+        println!("{}", t.unwrap());
+    }
+}
+
+pub fn make_service(url: String, token: Option<String>) -> Mutex<Service> {
     let s = Service{
         url: url,
-        stk: None,
+        stk: token,
         ctr: 0,
     };
     let m = Mutex::new(s);
@@ -72,9 +115,7 @@ pub fn add_protobuf(protobufs: &mut Protobufs, protobuf_name: String) -> Result<
 
 #[test]
 fn test_add_protobuf() {
-    let kp = RS256KeyPair::generate(4096);
     let mut protobufs = Protobufs{
-        keypair: kp.unwrap(),
         protomap: HashMap::new(),
     };
 
@@ -88,13 +129,15 @@ fn test_add_protobuf() {
 }
 
 // Add a new service definition to a protobuf grouping.
-pub fn add_service(protobuf: &mut Protobuf, service: Mutex<Service>, url: String) -> Result<(), String> {
+pub fn add_service(protobuf: &mut Protobuf, url: String, token: Option<String>) -> Result<(), String> {
+    let url1 = url.clone();
     if check_for_dup_urls(&protobuf, url) == true {
         let s = "duplicate url in service".to_string();
         return Err(s);
     } else {
+        let s = make_service(url1, token);
         //let mut cc = &protobuf.services;
-        protobuf.services.push(service);
+        protobuf.services.push(s);
     }
     Ok(())
 }
@@ -106,11 +149,11 @@ fn test_add_service_to_protobuf() {
         cltk: None,
         services: Vec::new(),
     };
-    let s = make_service("url1".to_string());
-    let r = add_service(&mut protobuf, s, "url1".to_string());
+    let r = add_service(&mut protobuf, "url1".to_string(), None);
     if r.is_ok() {
-        let s = make_service("url1".to_string());
-        let rr = add_service(&mut protobuf, s, "url1".to_string());
+        let _ = make_service("url1".to_string(), None);
+        // the following must fail because the service url was just created.
+        let rr = add_service(&mut protobuf, "url1".to_string(), None);
         let err = rr.unwrap_err();
         assert_eq!(err, "duplicate url in service");
     }
@@ -169,5 +212,6 @@ pub fn make_status_packet(code: StatusEnum,  error_message: String) -> registry:
     };
     p
 }
+
 
 

@@ -21,11 +21,6 @@ pub mod registry {
     tonic::include_proto!("registry");
 }
 
-//#[tokio::main]
-//async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//    Ok(())
-//}
-
 #[tokio::test]
 async fn test_authorize_for_unknown_protobuf() {
    let mut client = grpc_connect().await;
@@ -52,16 +47,18 @@ async fn test_register_for_supplied_protocol() {
         protobuf_url: "localhost:8089".to_string(),
     });
     let response = client.regs(request).await;
+    println!("{:?}", response);
     let a = response.unwrap();
     let b = a.into_inner();
-    let c= b.token;
     let d = b.status;
-    let g = d.clone();
-    let h = g.clone();
-    let e = d.unwrap().code;
-    if h.is_some() {
-        println!("{:?}", g);
-        assert_eq!(e,5,"register protobuf returned something");
+    if d.is_some() {
+        let g = d.clone();
+        let h = g.clone();
+        let e = d.unwrap().code;
+        if h.is_some() {
+            println!("{:?}", g);
+            assert_eq!(e, 5, "register protobuf returned something");
+        }
     }
 }
 

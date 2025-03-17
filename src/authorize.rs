@@ -15,7 +15,7 @@
  *
  */
 use jwt_simple::prelude::Duration;
-use crate::{common, jwt, registry, GDATA};
+use crate::{common, registry, GDATA};
 use crate::registry::{AuthorizeResponse};
 
 // Authorize is used by clients to obtain a JWT allowing FIND requests against a specific
@@ -26,33 +26,31 @@ pub fn handle_authorize(protobuf_name: String) -> AuthorizeResponse {
     // lookup protobuf and error if not found
     let name = protobuf_name.clone();
     let protodef = common::find_protobuf(&protobufs, protobuf_name.clone());
-    if protodef.is_some() {
-        let kp = protobufs.keypair.clone();
-        match jwt::create_token(kp, "client".to_string(), name.to_string(),
-                                false,
-                                Duration::from_hours(6)) {
-            Ok(jwttoken) => {
-                let jwt = jwttoken.clone();
-                let mut p = protodef.unwrap().lock().unwrap();
-                p.cltk = Some(jwt);
-                let response = registry::AuthorizeResponse {
-                    token: jwttoken,
-                    status: None,
-                };
-                return response;
-            },
-            Err(e) => {
-                let s = common::make_status_packet(common::StatusEnum::BADTOKEN, e);
-                let response = registry::AuthorizeResponse {
-                    token: "".to_string(),
-                    status: Some(s),
-                };
-                return response
-            },
-        }
-    } else {
+    if protodef.is_none() {
         let s = common::make_status_packet(common::StatusEnum::NOTFOUND,
                                            "no matching protobuf definition".to_string());
+        let response = registry::AuthorizeResponse {
+            token: "".to_string(),
+            status: Some(s)
+        };
+        return response;
+    }
+
+    let token = common::make_token("client".to_string(), name.to_string(), false,
+                                       Duration::from_hours(6));
+    if token.is_some() {
+        let token2 = token.clone();
+        let mut p = protodef.unwrap().lock().unwrap();
+        p.cltk = token;
+        let response = registry::AuthorizeResponse {
+            token: token2.unwrap(),
+            status: None,
+        };
+        response
+    }
+    else {
+        let s = common::make_status_packet(common::StatusEnum::BADTOKEN,
+                                           "failed to create jwt token".to_string());
         let response = registry::AuthorizeResponse {
             token: "".to_string(),
             status: Some(s)

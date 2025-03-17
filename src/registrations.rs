@@ -15,25 +15,26 @@
  *
  */
 use jwt_simple::prelude::Duration;
-use crate::{common, jwt, registry, GDATA};
-use crate::common::make_service;
+use crate::{common, registry, GDATA};
 use crate::registry::{DeRegisterRequest, DeRegisterResponse, FindProviderRequest, FindProviderResponse, KeepAliveResponse, KeepaliveReport};
 
 // Handle protobuf registration.
 pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterResponse {
 
-    let name = req.protobuf_name.to_string();
-    let name2 = name.clone();
+    let name1 = req.protobuf_name.to_string();
+    let name2 = name1.clone();
     let name3 = name2.clone();
-    let name4 = name3.clone();
-    let url = req.protobuf_url.to_string();
-    let url1 = url.clone();
+    let url1 = req.protobuf_url.to_string();
+    let url2 = url1.clone();
+
+    let token = common::make_token("server".to_string(), name2.to_string(),
+                                   false, Duration::from_hours(12));
 
     let mut protobufs = GDATA.get().unwrap().lock().unwrap();
-    let protobuf = common::find_protobuf(&protobufs, name);
+    let protobuf = common::find_protobuf(&protobufs, name1);
     if protobuf.is_none() {
         // protobuf does not exist.
-        let r = common::add_protobuf(&mut protobufs, name3);
+        let r = common::add_protobuf(&mut protobufs, name2);
         if r.is_err() {
             let s = common::make_status_packet(common::StatusEnum::SERVERROR, r.unwrap_err());
             let rsp = registry::RegisterResponse {
@@ -44,10 +45,10 @@ pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterRes
         }
     }
     // Refetch protobuf incase it didn't exist and was just created.
-    let tmpprot = common::find_protobuf(&protobufs, name2);
-    let service = make_service(url);
+    let tmpprot = common::find_protobuf(&protobufs, name3);
     let mut protobuf = tmpprot.unwrap().lock().unwrap();
-    let r = common::add_service(&mut protobuf, service, url1);
+    let token3 = token.clone();
+    let r = common::add_service(&mut protobuf, url2, token);
     if r.is_err() {
         let s = common::make_status_packet(common::StatusEnum::SERVERROR, r.unwrap_err());
         let r = registry::RegisterResponse {
@@ -56,31 +57,11 @@ pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterRes
         };
         return r;
     }
-
-    // Create the token for the response
-    let kp = protobufs.keypair.clone();
-    match jwt::create_token(kp, "server".to_string(), name4.to_string(), false,
-                                Duration::from_hours(6)) {
-        Ok(jwttoken) => {
-            let _jwt = jwttoken.clone();
-            //let mut svc = service.unwrap().lock().unwrap();
-            //let svc.stk = Some(jwt);
-
-            let response = registry::RegisterResponse {
-                token: jwttoken,
-                status: None,
-            };
-            return response;
-        },
-        Err(e) => {
-            let s = common::make_status_packet(common::StatusEnum::BADTOKEN, e);
-            let response = registry::RegisterResponse {
-                token: "".to_string(),
-                status: Some(s),
-            };
-            return response
-        },
-    }
+    let rsp = registry::RegisterResponse {
+        token: token3.unwrap(),
+        status: None,
+    };
+    rsp
 }
 
 pub fn handle_deregister(_req: DeRegisterRequest) -> DeRegisterResponse {
