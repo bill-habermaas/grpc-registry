@@ -16,12 +16,9 @@
  */
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//Todo write keepalive client-side unit test
-//ToDo write deregister client-site unit test
-//ToDo write findProvider client-side unit test
-//ToDo write provider report
 //ToDo add load balancer support
 //ToDo add timestamps to some protobuf messages
+//ToDo deregister - remove protobuf from map when services becomes empty
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 use tonic::{transport::Server, Request, Response, Status};
