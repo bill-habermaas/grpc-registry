@@ -14,11 +14,50 @@
  * limitations under the License.
  *
  */
-use crate::registry::{ProviderReportRequest, ProviderReportResponse};
+use crate::common::{get_keypair, make_status_packet};
+use crate::{common, jwt, GDATA};
+use crate::registry::{ByProvider, ByProviderInstance, ProviderReportRequest, ProviderReportResponse};
 
-pub fn handle_provider_report(_req: ProviderReportRequest) -> ProviderReportResponse {
+pub fn handle_provider_report(req: ProviderReportRequest) -> ProviderReportResponse {
+    let token = req.token;
+    let kp = get_keypair();
+    let claim = jwt::validate_token(kp.unwrap(), token);
+    if claim.is_err() {
+        let s = make_status_packet(common::StatusEnum::AUTHERROR, claim.unwrap_err());
+        let response = ProviderReportResponse {
+            providers: Vec::new(),
+            status: Some(s),
+        };
+        return response;
+    }
+
+    let mut byproviders = Vec::new();
+    let protobufs= GDATA.get().unwrap().lock().unwrap();
+
+    //let providers = protobufs.protomap.values().cloned().collect::<Vec<Protobuf>>();
+    for provider in protobufs.protomap.values() {
+        let protoitem = provider.lock().unwrap();
+        let protoname = protoitem.name.clone();
+        let mut byproto = ByProvider {
+            protobuf_name: protoname,
+            instances: Vec::new(),
+        };
+        // iterate through services
+        for i in 0..protoitem.services.len() {
+            let lsrv = &protoitem.services[i];
+            let srv = lsrv.lock().unwrap();
+            let url = srv.url.clone();
+            let serv = ByProviderInstance {
+                service_url: url,
+                requests: srv.ctr,
+            };
+            byproto.instances.push(serv);
+        }
+        byproviders.push(byproto);
+    }
+
     let rsp = ProviderReportResponse {
-        providers: vec![],
+        providers: byproviders,
         status: None,
     };
     rsp

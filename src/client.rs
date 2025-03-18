@@ -50,6 +50,7 @@ async fn test_register_for_supplied_protocol() {
     println!("{:?}", response);
     let a = response.unwrap();
     let b = a.into_inner();
+    let tok = b.token;
     let d = b.status;
     if d.is_some() {
         let g = d.clone();
@@ -60,6 +61,22 @@ async fn test_register_for_supplied_protocol() {
             assert_eq!(e, 5, "register protobuf returned something");
         }
     }
+    let tok2 = tok.clone();
+
+    let rpt = ProviderReportRequest {
+        token: tok,
+    };
+
+    let req = DeRegisterRequest {
+        token: tok2,
+    };
+    let response = client.unreg(req).await;
+    println!("{:?}", response);
+
+
+    let rsp = client.report(rpt).await;
+    println!("{:?}", rsp);
+
 }
 
 pub async fn grpc_connect() -> RegistryClient<Channel> {
@@ -79,6 +96,7 @@ pub async fn grpc_connect() -> RegistryClient<Channel> {
 // Load configuration parameters
 use config::{Config};
 use tonic::transport::Channel;
+use crate::registry::{DeRegisterRequest, ProviderReportRequest, ProviderReportResponse};
 
 pub fn getconfig() -> HashMap<String, String> {
     let settings = Config::builder()

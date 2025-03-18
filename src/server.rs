@@ -16,11 +16,12 @@
  */
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//Todo write keepalive function and client-side unit test
-//ToDo write deregister function and client-site unit test
-//ToDo write findProvider function and client-side unit test
+//Todo write keepalive client-side unit test
+//ToDo write deregister client-site unit test
+//ToDo write findProvider client-side unit test
 //ToDo write provider report
 //ToDo add load balancer support
+//ToDo add timestamps to some protobuf messages
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 use tonic::{transport::Server, Request, Response, Status};

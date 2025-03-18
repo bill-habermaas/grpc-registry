@@ -19,7 +19,8 @@ use crate::{common, jwt, registry, Protobuf, GDATA};
 use crate::common::{find_protobuf, get_keypair, make_status_packet};
 use crate::registry::{DeRegisterRequest, DeRegisterResponse, FindProviderRequest, FindProviderResponse, KeepAliveResponse, KeepaliveReport};
 
-// Handle protobuf registration.
+// Handle protobuf registration. The protobuf name ans service url are encoded in
+// the jwt token so token validation can provide this information when deregistering.
 pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterResponse {
 
     let name1 = req.protobuf_name.to_string();
@@ -28,6 +29,8 @@ pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterRes
     let url1 = req.protobuf_url.to_string();
     let url2 = url1.clone();
 
+    // username contains the url
+    // subject contains the protobuf name.
     let token = common::make_token(url2.to_string(), name2.to_string(),
                                    false, Duration::from_hours(12));
 
@@ -78,8 +81,8 @@ pub fn handle_deregister(req: DeRegisterRequest) -> DeRegisterResponse {
         return response;
     }
     let info = claim.unwrap();
-    let url = info.subject.unwrap();
-    let proto_name = info.custom.user_name;
+    let proto_name = info.subject.unwrap();
+    let url = info.custom.user_name;
     // find the protobuf containing the protobuf group
     let protobufs = GDATA.get().unwrap().lock().unwrap();
     let protocol = find_protobuf(&protobufs, proto_name);
