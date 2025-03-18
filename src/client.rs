@@ -14,6 +14,12 @@
  * limitations under the License.
  *
  */
+
+// This client is a test-bed for the gRPC registry service. It exercises server
+// functions and provides a working example of invoking a service through gRPC
+// requests.
+
+
 use std::collections::HashMap;
 use registry:: registry_client::RegistryClient;
 
@@ -39,18 +45,23 @@ async fn test_authorize_for_unknown_protobuf() {
 }
 
 #[tokio::test]
-async fn test_register_for_supplied_protocol() {
+async fn test_register_service_functionality() {
+    // 1 - Register a service
+    // 2 - Issue a find which should return registered service.
+    // 3 - Perform a keep-alive
+    // 3 - DeRegister the service
+    // 4 - Perform report.
     let mut client = grpc_connect().await;
 
+    // define the protobuf service.
     let request = tonic::Request::new(registry::RegisterRequest {
         protobuf_name: "testproto".to_string(),
         protobuf_url: "localhost:8089".to_string(),
     });
     let response = client.regs(request).await;
-    println!("{:?}", response);
     let a = response.unwrap();
     let b = a.into_inner();
-    let tok = b.token;
+    let token = b.token;
     let d = b.status;
     if d.is_some() {
         let g = d.clone();
@@ -58,32 +69,64 @@ async fn test_register_for_supplied_protocol() {
         let e = d.unwrap().code;
         if h.is_some() {
             println!("{:?}", g);
-            assert_eq!(e, 5, "register protobuf returned something");
+            assert_eq!(e, 5, "register protobuf returned something unexpected");
         }
     }
-    let tok2 = tok.clone();
 
-    let rpt = ProviderReportRequest {
-        token: tok,
-    };
+    // Issue a find to get the service registration.else
+    let tok1 = token.clone();
+    let request = tonic::Request::new(registry::FindProviderRequest {
+        registry_token: tok1,
+        protobuf_name: "testproto".to_string(),
+        by_round_robin: false,
+        by_lowest_use: false,
+    });
+    let response = client.find(request).await;
+    let a = response.unwrap();
+    let b = a.into_inner();
+    let d = b.service_url;
+    assert_eq!(d, "localhost:8089".to_string(), "wrong service address");
 
-    let req = DeRegisterRequest {
+    // Issue keep alive
+    let tok2 = token.clone();
+    let request = tonic::Request::new(registry::KeepaliveReport {
         token: tok2,
-    };
-    let response = client.unreg(req).await;
-    println!("{:?}", response);
+        number_requests: 0,
+    });
+    let response = client.alive(request).await;
+    let a = response.unwrap();
+    let b = a.into_inner();
+    let c = b.status;
+    assert!(c.is_none(), "not success");
 
+    // Remove the registration.
+    let tok3 = token.clone();
+    let request = tonic::Request::new(registry::DeRegisterRequest {
+        token: tok3,
+    });
+    let response = client.unreg(request).await;
+    let a = response.unwrap();
+    let b = a.into_inner();
+    let c = b.status;
+    assert!(c.is_none(), "not success");
 
-    let rsp = client.report(rpt).await;
-    println!("{:?}", rsp);
-
+    let tok4 = token.clone();
+    let request = tonic::Request::new(registry::ProviderReportRequest {
+        token: tok4,
+    });
+    let response = client.report(request).await;
+    let a = response.unwrap();
+    // print report -- instances for testproto should be empty
+    println!("{:?}", a);
 }
 
+// Setup the gRPC connection for performing tests.
+// Returns the gRPC client instance.
 pub async fn grpc_connect() -> RegistryClient<Channel> {
     let params = getconfig();
     let server_addr = params.get("server_address").unwrap();
     let server_http = format!("http://{}", server_addr);
-    println!("Connecting to gRPC Server at {}", server_http);
+    //println!("Connecting to gRPC Server at {}", server_http);
     match RegistryClient::connect(server_http).await {
         Ok(c) => { return c; },
         Err(e) => {
@@ -96,8 +139,11 @@ pub async fn grpc_connect() -> RegistryClient<Channel> {
 // Load configuration parameters
 use config::{Config};
 use tonic::transport::Channel;
-use crate::registry::{DeRegisterRequest, ProviderReportRequest, ProviderReportResponse};
+//use crate::registry::{DeRegisterRequest, ProviderReportRequest, ProviderReportResponse};
 
+// Returns a hashmap of configuration parameters. The configuration file is
+// shared between the client and server so the same network address is used
+// in both.
 pub fn getconfig() -> HashMap<String, String> {
     let settings = Config::builder()
         // Add in `./Settings.toml`
@@ -107,7 +153,6 @@ pub fn getconfig() -> HashMap<String, String> {
         .add_source(config::Environment::with_prefix("APP"))
         .build()
         .unwrap();
-
     let cfg = settings.clone();
     let themap: HashMap<String, String> =
         cfg.try_deserialize::<HashMap<String, String>>()
