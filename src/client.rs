@@ -40,7 +40,6 @@ async fn test_authorize_for_unknown_protobuf() {
     let c = b.status;
     let g = c.clone();
     let d = c.unwrap().code;
-    println!("{:?}", g);
     assert_eq!(d, 1, "not protobuf does not exist: error-code={}", d);
 }
 

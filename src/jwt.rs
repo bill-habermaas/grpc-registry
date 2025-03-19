@@ -60,6 +60,10 @@ pub fn create_token(kp: &RS256KeyPair, username: String, subject: String, is_adm
 // Validate that the token is valid and correct
 pub fn validate_token(kp: &RS256KeyPair, token: String) -> Result<JWTClaims<MyAdditionalData>, String> {
 
+    if token.len() < 1 {
+        let msg = "empty token, failed to validatation failed.".to_string();
+        return Err(msg);
+    }
     let mut options = VerificationOptions::default();
     // Accept tokens that will only be valid in the future
     options.accept_future = true;

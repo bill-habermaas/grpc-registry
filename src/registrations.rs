@@ -70,6 +70,18 @@ pub fn handle_register(req: &registry::RegisterRequest) -> registry::RegisterRes
 
 // Remove a protocol registration
 pub fn handle_deregister(req: DeRegisterRequest) -> DeRegisterResponse {
+    let (key, response) = inner_deregister(req);
+    if key.len() > 0  {
+        let mut protobufs = GDATA.get().unwrap().lock().unwrap();
+        protobufs.protomap.remove(&key);
+    }
+    response
+}
+// The inner deregister does the bulk of the work. But the handle_reregister is the
+// hook to remove the map entry for the protobuf from the hashmap when all services
+// have been removed. This is necessary so the protobufs instance is handled out
+// of scope from the mainline processing.
+fn inner_deregister(req: DeRegisterRequest) -> (String, DeRegisterResponse) {
     let token = req.token;
     let kp = get_keypair();
     let claim = jwt::validate_token(kp.unwrap(), token);
@@ -78,12 +90,13 @@ pub fn handle_deregister(req: DeRegisterRequest) -> DeRegisterResponse {
         let response = DeRegisterResponse {
             status: Some(s),
         };
-        return response;
+        return ("".to_string(), response);
     }
     let info = claim.unwrap();
     let proto_name = info.subject.unwrap();
     let url = info.custom.user_name;
     // find the protobuf containing the protobuf group
+    let pname = proto_name.clone();
     let protobufs = GDATA.get().unwrap().lock().unwrap();
     let protocol = find_protobuf(&protobufs, proto_name);
     if protocol.is_none() {
@@ -91,15 +104,20 @@ pub fn handle_deregister(req: DeRegisterRequest) -> DeRegisterResponse {
     }
     // search through the service index to find the registration.else
     let mut protobuf = protocol.unwrap().lock().unwrap();
-    if find_entry_to_remove(&mut protobuf, url) == false {
-        return unreg_not_found();
-    }
     let rsp = DeRegisterResponse {
         status: None,
     };
-    rsp
+    if find_entry_to_remove(&mut protobuf, url) == false {
+        return unreg_not_found();
+    } else {
+        if protobuf.services.is_empty() {
+            return (pname.to_string(), rsp);
+        }
+    }
+    ("".to_string(), rsp)
 }
 
+// locate the proper service entry to remove.
 fn find_entry_to_remove(protobuf: &mut Protobuf, url: String) -> bool {
     let ct = protobuf.services.len();
     if ct < 1 { return false; }
@@ -123,13 +141,13 @@ fn search_services(protobuf: &mut Protobuf, url: String) -> usize {
     return 0;
 }
 
-fn unreg_not_found() -> DeRegisterResponse {
+fn unreg_not_found() -> (String, DeRegisterResponse) {
     let s = make_status_packet(common::StatusEnum::NOTFOUND,
                                "protobuf not found".to_string());
     let response = DeRegisterResponse {
         status: Some(s),
     };
-    return response;
+    return ("".to_string(), response);
 }
 
 // find the provider
@@ -185,6 +203,7 @@ pub fn handle_find_provider(req: FindProviderRequest) -> FindProviderResponse {
 // Handle keep alive request
 pub fn handle_keep_alive(req: KeepaliveReport) -> KeepAliveResponse {
     let token = req.token;
+    let count = req.number_requests;
     let kp = get_keypair();
     let claim = jwt::validate_token(kp.unwrap(), token);
     if claim.is_err() {
@@ -225,7 +244,7 @@ pub fn handle_keep_alive(req: KeepaliveReport) -> KeepAliveResponse {
         let m = &p.services[i];
         let mut x = m.lock().unwrap();
         if x.url == url {
-            x.ctr = x.ctr + 1;
+            x.ctr = count;
         }
     }
     let rsp = KeepAliveResponse {
