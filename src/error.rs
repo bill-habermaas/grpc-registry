@@ -15,7 +15,6 @@
  *
  */
 
-
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use thiserror::Error;

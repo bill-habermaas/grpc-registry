@@ -40,7 +40,7 @@ async fn test_authorize_for_unknown_protobuf() {
     let c = b.status;
     let g = c.clone();
     let d = c.unwrap().code;
-    assert_eq!(d, 1, "not protobuf does not exist: error-code={}", d);
+    assert_eq!(d, 1, "protobuf does not exist: error-code={}", d);
 }
 
 #[tokio::test]
@@ -138,7 +138,6 @@ pub async fn grpc_connect() -> RegistryClient<Channel> {
 // Load configuration parameters
 use config::{Config};
 use tonic::transport::Channel;
-//use crate::registry::{DeRegisterRequest, ProviderReportRequest, ProviderReportResponse};
 
 // Returns a hashmap of configuration parameters. The configuration file is
 // shared between the client and server so the same network address is used

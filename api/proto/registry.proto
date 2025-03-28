@@ -9,7 +9,7 @@ option java_package = "registry";
 // For Rust - force everything into the same package
 package registry;
 
-// These status codes are remapped as a Rust enum as support for
+// These status codes are remapped as a Rust enum support for
 // protobuf enums is lacking. Keep these enums in sync.
 enum StatusCodes {
   SUCCESS = 0;    // successful result

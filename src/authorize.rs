@@ -36,6 +36,7 @@ pub fn handle_authorize(protobuf_name: String) -> AuthorizeResponse {
         return response;
     }
 
+    // Utility routine to generate a jwt token for client functions
     let token = common::make_token("client".to_string(), name.to_string(), false,
                                        Duration::from_hours(6));
     if token.is_some() {
